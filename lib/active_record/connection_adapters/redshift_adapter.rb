@@ -195,7 +195,7 @@ module ActiveRecord
       end
 
       def truncate(table_name, name = nil)
-        exec_query "TRUNCATE TABLE #{quote_table_name(table_name)}", name, []
+        internal_exec_query "TRUNCATE TABLE #{quote_table_name(table_name)}", name, []
       end
 
       # Is this connection alive and ready for queries?
@@ -292,7 +292,7 @@ module ActiveRecord
       # Set the authorized user for this session
       def session_auth=(user)
         clear_cache!
-        exec_query "SET SESSION AUTHORIZATION #{user}"
+        internal_execute "SET SESSION AUTHORIZATION #{user}"
       end
 
       def use_insert_returning?
@@ -622,7 +622,7 @@ module ActiveRecord
       end
 
       def last_insert_id_result(sequence_name) # :nodoc:
-        exec_query("SELECT currval('#{sequence_name}')", 'SQL')
+        internal_exec_query("SELECT currval('#{sequence_name}')", 'SQL')
       end
 
       # Returns the list of a table's column names, data types, and default values.
