@@ -154,11 +154,34 @@ module ActiveRecord
           end
         end
 
+        READ_QUERY = ActiveRecord::ConnectionAdapters::AbstractAdapter.build_read_query_regexp(
+          :close, :declare, :fetch, :move, :set, :show
+        ) # :nodoc:
+        private_constant :READ_QUERY
+
+        def write_query?(sql) # :nodoc:
+          !READ_QUERY.match?(sql)
+        rescue ArgumentError # Invalid encoding
+          !READ_QUERY.match?(sql.b)
+        end
+
         # Executes an SQL statement, returning a PG::Result object on success
         # or raising a PG::Error exception otherwise.
         def execute(sql, name = nil)
           log(sql, name) do
             @connection.async_exec(sql)
+          end
+        end
+
+        def raw_execute(sql, name, async: false, allow_retry: false, materialize_transactions: true)
+          log(sql, name, async: async) do
+            # with_raw_connection(allow_retry: allow_retry, materialize_transactions: materialize_transactions) do |conn|
+            #   result = conn.async_exec(sql)
+              result = @connection.async_exec(sql)
+              verified!
+              # handle_warnings(result)
+              result
+            # end
           end
         end
 
@@ -192,7 +215,7 @@ module ActiveRecord
           super
         end
 
-        def exec_insert(sql, name, binds, pk = nil, sequence_name = nil)
+        def exec_insert(sql, name = nil, binds = [], pk = nil, sequence_name = nil, returning: nil)
           val = internal_exec_query(sql, name, binds)
           if !use_insert_returning? && pk
             unless sequence_name
